@@ -9,6 +9,7 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
+import docx
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -26,6 +27,18 @@ def load_pdf_with_pdfplumber(path):
                 docs.append(Document(page_content=text, metadata={"source": path, "page": i+1}))
     return docs
 
+# Função para carregar DOCX usando python-docx
+def load_docx_with_python_docx(path):
+    doc = docx.Document(path)
+    full_text = []
+    for para in doc.paragraphs:
+        if para.text.strip():
+            full_text.append(para.text)
+    if full_text:
+        return [Document(page_content="\n".join(full_text), metadata={"source": path})]
+    else:
+        return []
+
 # load or create Chroma index
 def get_retriever():
     embeddings = OpenAIEmbeddings()
@@ -42,16 +55,16 @@ def add_docs_to_index(docs):
     vectorstore.persist()
 
 retriever = get_retriever()
-qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(), retriever=retriever)
+qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model="gpt-4.1-nano"), retriever=retriever)
 
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Olá! Envie um arquivo .txt ou .pdf para indexar, ou faça uma pergunta.")
+    await update.message.reply_text("Olá! Envie um arquivo .txt, .pdf ou .docx para indexar, ou faça uma pergunta.")
 
 async def handle_docs(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     file = update.message.document
     ext = os.path.splitext(file.file_name)[1].lower()
-    if ext not in [".txt", ".pdf"]:
-        await update.message.reply_text("Arquivo não suportado. Envie apenas .txt ou .pdf.")
+    if ext not in [".txt", ".pdf", ".docx"]:
+        await update.message.reply_text("Arquivo não suportado. Envie apenas .txt, .pdf ou .docx.")
         return
     os.makedirs(DOCS_DIR, exist_ok=True)
     path = f"{DOCS_DIR}/{file.file_name}"
@@ -61,12 +74,16 @@ async def handle_docs(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if ext == ".txt":
             loader = TextLoader(path)
             docs = loader.load()
-        else:
+        elif ext == ".pdf":
             docs = load_pdf_with_pdfplumber(path)
+        elif ext == ".docx":
+            docs = load_docx_with_python_docx(path)
+        else:
+            docs = []
         add_docs_to_index(docs)
         global retriever, qa
         retriever = get_retriever()
-        qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(), retriever=retriever)
+        qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model="gpt-4.1-nano"), retriever=retriever)
         await update.message.reply_text(f"Arquivo indexado com sucesso: {file.file_name} (total de {len(docs)} documentos)")
     except Exception as e:
         await update.message.reply_text(f"Erro ao processar o arquivo: {str(e)}")

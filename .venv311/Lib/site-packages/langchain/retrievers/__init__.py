@@ -17,7 +17,6 @@ the backbone of a retriever, but there are other types of retrievers as well.
     Document, Serializable, Callbacks,
     CallbackManagerForRetrieverRun, AsyncCallbackManagerForRetrieverRun
 """
-
 from typing import TYPE_CHECKING, Any
 
 from langchain._api.module_import import create_importer

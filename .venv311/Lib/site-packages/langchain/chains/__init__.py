@@ -59,7 +59,6 @@ _module_lookup = {
     "OpenAIModerationChain": "langchain.chains.moderation",
     "NatBotChain": "langchain.chains.natbot.base",
     "create_citation_fuzzy_match_chain": "langchain.chains.openai_functions",
-    "create_citation_fuzzy_match_runnable": "langchain.chains.openai_functions",
     "create_extraction_chain": "langchain.chains.openai_functions",
     "create_extraction_chain_pydantic": "langchain.chains.openai_functions",
     "create_qa_with_sources_chain": "langchain.chains.openai_functions",

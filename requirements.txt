@@ -6,3 +6,4 @@ python-dotenv
 pdfplumber
 langchain-community
 tiktoken
+python-docx

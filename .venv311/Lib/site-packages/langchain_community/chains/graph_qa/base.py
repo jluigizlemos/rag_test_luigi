@@ -1,5 +1,4 @@
 """Question answering over a graph."""
-
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
@@ -9,7 +8,7 @@ from langchain.chains.llm import LLMChain
 from langchain_core.callbacks.manager import CallbackManagerForChainRun
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.prompts import BasePromptTemplate
-from pydantic import Field
+from langchain_core.pydantic_v1 import Field
 
 from langchain_community.chains.graph_qa.prompts import (
     ENTITY_EXTRACTION_PROMPT,
