@@ -10,12 +10,24 @@ from langchain.vectorstores import Chroma
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 import docx
+from langchain.prompts import PromptTemplate
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CHROMA_DIR = "chroma_index"
 DOCS_DIR = "docs"
+
+# Prompt customizado para garantir que só use os documentos indexados
+def get_custom_prompt():
+    return PromptTemplate(
+        input_variables=["context", "question"],
+        template=(
+            "Responda à pergunta apenas com base nos documentos fornecidos abaixo. "
+            "Se a resposta não estiver nos documentos, diga 'Não sei com base nos documentos indexados.'\n\n"
+            "Documentos:\n{context}\n\nPergunta: {question}\nResposta:"
+        )
+    )
 
 # Função para carregar PDF usando pdfplumber
 def load_pdf_with_pdfplumber(path):
@@ -55,7 +67,13 @@ def add_docs_to_index(docs):
     vectorstore.persist()
 
 retriever = get_retriever()
-qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model="gpt-4.1-nano"), retriever=retriever)
+custom_prompt = get_custom_prompt()
+qa = RetrievalQA.from_chain_type(
+    llm=ChatOpenAI(model="gpt-4.1-nano"),
+    retriever=retriever,
+    chain_type="stuff",
+    chain_type_kwargs={"prompt": custom_prompt}
+)
 
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Olá! Envie um arquivo .txt, .pdf ou .docx para indexar, ou faça uma pergunta.")
@@ -83,7 +101,12 @@ async def handle_docs(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         add_docs_to_index(docs)
         global retriever, qa
         retriever = get_retriever()
-        qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model="gpt-4.1-nano"), retriever=retriever)
+        qa = RetrievalQA.from_chain_type(
+            llm=ChatOpenAI(model="gpt-4.1-nano"),
+            retriever=retriever,
+            chain_type="stuff",
+            chain_type_kwargs={"prompt": custom_prompt}
+        )
         await update.message.reply_text(f"Arquivo indexado com sucesso: {file.file_name} (total de {len(docs)} documentos)")
     except Exception as e:
         await update.message.reply_text(f"Erro ao processar o arquivo: {str(e)}")
